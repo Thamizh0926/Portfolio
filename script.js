@@ -1,474 +1,147 @@
-/* styles.css - Connected to index.html via: <link rel="stylesheet" href="styles.css"> */
-:root {
-    --bg: #000000;
-    --accent: #00f5ff;
-    --accent2: #ff2d78;
-    --accent3: #7c3aed;
-    --text: #ffffff;
-    --muted: #cbd5e1;
+// script.js - Connected to index.html via: <script src="script.js"></script>
+// ===== ANIMATED BACKGROUND =====
+const canvas = document.getElementById('bg-canvas');
+const ctx = canvas.getContext('2d');
+let W, H, particles, lines;
+
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+
+resize();
+window.addEventListener('resize', resize);
+
+class Particle {
+  constructor() { this.reset(); }
+  reset() {
+    this.x = Math.random() * W;
+    this.y = Math.random() * H;
+    this.vx = (Math.random() - 0.5) * 0.4;
+    this.vy = (Math.random() - 0.5) * 0.4;
+    this.r = Math.random() * 1.5 + 0.5;
+    this.alpha = Math.random() * 0.6 + 0.1;
+    this.color = Math.random() > 0.5 ? '0,245,255' : '255,45,120';
+  }
+  update() {
+    this.x += this.vx;
+    this.y += this.vy;
+    if (this.x < 0 || this.x > W || this.y < 0 || this.y > H) this.reset();
+  }
+  draw() {
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(${this.color},${this.alpha})`;
+    ctx.fill();
+  }
+}
+
+const NUM = 120;
+const pts = Array.from({ length: NUM }, () => new Particle());
+
+// Geometric grid lines
+let gridOffset = 0;
+
+function drawGrid() {
+  const spacing = 80;
+  const gAlpha = 0.04;
+  ctx.strokeStyle = `rgba(0,245,255,${gAlpha})`;
+  ctx.lineWidth = 0.5;
+  const offset = (gridOffset % spacing);
+
+  for (let x = -spacing + offset; x < W + spacing; x += spacing) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+  }
+  for (let y = -spacing + offset; y < H + spacing; y += spacing) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+}
+
+// Floating hexagons
+let hexTime = 0;
+const hexes = Array.from({ length: 6 }, (_, i) => ({
+  x: Math.random() * W, y: Math.random() * H,
+  size: 30 + Math.random() * 60,
+  speed: 0.003 + Math.random() * 0.005,
+  phase: Math.random() * Math.PI * 2,
+  color: i % 2 === 0 ? '0,245,255' : '124,58,237'
+}));
+
+function drawHex(x, y, size, alpha, color) {
+  ctx.beginPath();
+  for (let i = 0; i < 6; i++) {
+    const a = (Math.PI / 3) * i - Math.PI / 6;
+    const px = x + size * Math.cos(a);
+    const py = y + size * Math.sin(a);
+    i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  ctx.strokeStyle = `rgba(${color},${alpha})`;
+  ctx.lineWidth = 0.8;
+  ctx.stroke();
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  ctx.clearRect(0, 0, W, H);
+
+  gridOffset += 0.15;
+  hexTime += 0.003;
+
+  drawGrid();
+
+  hexes.forEach(h => {
+    h.y -= h.speed * 0.5;
+    if (h.y + h.size < 0) { h.y = H + h.size; h.x = Math.random() * W; }
+    const pulse = 0.05 + 0.04 * Math.sin(hexTime + h.phase);
+    drawHex(h.x, h.y, h.size, pulse, h.color);
+  });
+
+  for (let i = 0; i < pts.length; i++) {
+    for (let j = i + 1; j < pts.length; j++) {
+      const dx = pts[i].x - pts[j].x;
+      const dy = pts[i].y - pts[j].y;
+      const d = Math.sqrt(dx * dx + dy * dy);
+      if (d < 100) {
+        ctx.beginPath();
+        ctx.moveTo(pts[i].x, pts[i].y);
+        ctx.lineTo(pts[j].x, pts[j].y);
+        ctx.strokeStyle = `rgba(0,245,255,${0.08 * (1 - d / 100)})`;
+        ctx.lineWidth = 0.5;
+        ctx.stroke();
+      }
+    }
   }
 
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+  pts.forEach(p => { p.update(); p.draw(); });
+}
 
-  html { scroll-behavior: smooth; }
+animate();
 
-  body {
-    background: #000000;
-    color: var(--text);
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 18px;
-    overflow-x: hidden;
-  }
+// ===== SCROLL REVEAL =====
+const revealEls = document.querySelectorAll('.reveal');
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach((entry, i) => {
+    if (entry.isIntersecting) {
+      setTimeout(() => entry.target.classList.add('visible'), i * 80);
+    }
+  });
+}, { threshold: 0.1 });
+revealEls.forEach(el => observer.observe(el));
 
-  /* === ANIMATED BACKGROUND === */
-  #bg-canvas {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    z-index: 0;
-    pointer-events: none;
-  }
+// ===== FORM =====
+function handleSubmit(e) {
+  e.preventDefault();
+  const name = document.getElementById('sender-name').value;
+  const email = document.getElementById('sender-email').value;
+  const msg = document.getElementById('sender-msg').value;
 
-  .content { position: relative; z-index: 1; }
+  const subject = encodeURIComponent(`Portfolio Message from ${name}`);
+  const body = encodeURIComponent(`Name: ${name}\nEmail: ${email}\n\nMessage:\n${msg}`);
+  window.location.href = `mailto:thamizh0926@gmail.com?subject=${subject}&body=${body}`;
 
-  /* === NAV === */
-  nav {
-    position: fixed;
-    top: 0; left: 0; right: 0;
-    z-index: 100;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1.2rem 4rem;
-    background: rgba(0,0,0,0.7);
-    backdrop-filter: blur(12px);
-    border-bottom: 1px solid rgba(0,245,255,0.15);
-  }
-
-  .logo {
-    font-family: 'Orbitron', monospace;
-    font-size: 1.4rem;
-    font-weight: 900;
-    background: linear-gradient(90deg, #00f5ff, #ff2d78);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    letter-spacing: 2px;
-  }
-
-  nav ul {
-    list-style: none;
-    display: flex;
-    gap: 2.5rem;
-  }
-
-  nav a {
-    text-decoration: none;
-    color: var(--muted);
-    font-size: 0.95rem;
-    font-weight: 600;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    transition: color 0.3s;
-  }
-
-  nav a:hover { color: var(--accent); }
-
-  /* === HERO === */
-  .hero {
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    padding: 6rem 2rem 4rem;
-  }
-
-  .hero-inner { max-width: 800px; }
-
-  .hero-label {
-    font-size: 0.8rem;
-    letter-spacing: 4px;
-    color: var(--accent);
-    text-transform: uppercase;
-    margin-bottom: 1.5rem;
-    animation: fadeUp 0.8s ease both;
-  }
-
-  .hero h1 {
-    font-family: 'Orbitron', monospace;
-    font-size: clamp(1.8rem, 4vw, 3.8rem);
-    font-weight: 900;
-    line-height: 1.05;
-    margin-bottom: 1.5rem;
-    white-space: nowrap;
-    animation: fadeUp 0.8s 0.15s ease both;
-  }
-
-  .hero h1 .name {
-    background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 50%, var(--accent3) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-
-  .hero-sub {
-    font-size: 1.3rem;
-    color: var(--muted);
-    max-width: 500px;
-    margin: 0 auto 2.5rem;
-    line-height: 1.7;
-    animation: fadeUp 0.8s 0.3s ease both;
-  }
-
-  .hero-btns {
-    display: flex;
-    gap: 1rem;
-    justify-content: center;
-    flex-wrap: wrap;
-    animation: fadeUp 0.8s 0.45s ease both;
-  }
-
-  .btn {
-    padding: 0.75rem 2rem;
-    border-radius: 4px;
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 0.95rem;
-    font-weight: 700;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    cursor: pointer;
-    text-decoration: none;
-    transition: all 0.3s;
-    display: inline-block;
-  }
-
-  .btn-primary {
-    background: linear-gradient(135deg, var(--accent), var(--accent3));
-    color: #000;
-    border: none;
-  }
-
-  .btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 0 30px rgba(0,245,255,0.5);
-  }
-
-  .btn-outline {
-    background: transparent;
-    color: var(--accent2);
-    border: 1.5px solid var(--accent2);
-  }
-
-  .btn-outline:hover {
-    background: var(--accent2);
-    color: #000;
-    transform: translateY(-2px);
-    box-shadow: 0 0 30px rgba(255,45,120,0.4);
-  }
-
-  /* === SECTIONS === */
-  section {
-    padding: 6rem 4rem;
-    max-width: 1100px;
-    margin: 0 auto;
-  }
-
-  .section-title {
-    font-family: 'Orbitron', monospace;
-    font-size: 1.8rem;
-    font-weight: 700;
-    margin-bottom: 0.5rem;
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-  }
-
-  .section-title::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: linear-gradient(90deg, var(--accent), transparent);
-  }
-
-  .section-tag {
-    font-size: 0.7rem;
-    letter-spacing: 3px;
-    color: var(--accent2);
-    text-transform: uppercase;
-    margin-bottom: 0.5rem;
-  }
-
-  /* === SKILLS === */
-  .skills-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
-    gap: 1.4rem;
-    margin-top: 2.5rem;
-  }
-
-  .skill-chip {
-    background: rgba(0,245,255,0.05);
-    border: 1px solid rgba(0,245,255,0.2);
-    border-radius: 12px;
-    padding: 2.2rem 1.2rem;
-    text-align: center;
-    transition: all 0.3s;
-    cursor: default;
-  }
-
-  .skill-chip:hover {
-    background: rgba(0,245,255,0.12);
-    border-color: var(--accent);
-    transform: translateY(-4px);
-    box-shadow: 0 8px 30px rgba(0,245,255,0.15);
-  }
-
-  .skill-icon { font-size: 3rem; margin-bottom: 0.8rem; }
-  .skill-name { font-size: 1.1rem; font-weight: 600; letter-spacing: 0.5px; }
-  .skill-bar {
-    height: 2px;
-    background: rgba(255,255,255,0.1);
-    border-radius: 2px;
-    margin-top: 0.6rem;
-    overflow: hidden;
-  }
-  .skill-fill {
-    height: 100%;
-    background: linear-gradient(90deg, var(--accent), var(--accent3));
-    border-radius: 2px;
-    transition: width 1.5s ease;
-  }
-
-  /* === CARDS === */
-  .cards-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 1.5rem;
-    margin-top: 2.5rem;
-  }
-
-  .card {
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 10px;
-    padding: 1.8rem;
-    transition: all 0.35s;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, var(--accent), var(--accent2));
-    transform: scaleX(0);
-    transform-origin: left;
-    transition: transform 0.4s;
-  }
-
-  .card:hover { transform: translateY(-6px); border-color: rgba(0,245,255,0.2); }
-  .card:hover::before { transform: scaleX(1); }
-
-  .card-tag {
-    font-size: 0.65rem;
-    letter-spacing: 2px;
-    color: var(--accent);
-    text-transform: uppercase;
-    margin-bottom: 0.6rem;
-    display: inline-block;
-    padding: 0.2rem 0.6rem;
-    background: rgba(0,245,255,0.1);
-    border-radius: 3px;
-  }
-
-  .card h3 {
-    font-family: 'Exo 2', sans-serif;
-    font-size: 1.05rem;
-    font-weight: 800;
-    margin-bottom: 0.6rem;
-    line-height: 1.3;
-    letter-spacing: 0.5px;
-  }
-
-  .card p {
-    font-size: 1.05rem;
-    color: var(--muted);
-    line-height: 1.65;
-    margin-bottom: 1rem;
-  }
-
-  .card-meta {
-    font-size: 0.8rem;
-    color: var(--accent3);
-    font-weight: 600;
-    letter-spacing: 0.5px;
-  }
-
-  .card-links { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-top: 1rem; }
-
-  .tag-pill {
-    font-size: 0.7rem;
-    padding: 0.25rem 0.6rem;
-    border-radius: 3px;
-    background: rgba(124,58,237,0.15);
-    border: 1px solid rgba(124,58,237,0.3);
-    color: #a78bfa;
-    letter-spacing: 0.5px;
-  }
-
-  /* === CERT CARDS === */
-  .cert-card {
-    display: flex;
-    align-items: flex-start;
-    gap: 1.2rem;
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 10px;
-    padding: 1.5rem;
-    transition: all 0.3s;
-  }
-
-  .cert-card:hover { transform: translateX(6px); border-color: rgba(255,45,120,0.3); }
-
-  .cert-icon {
-    font-size: 2.2rem;
-    flex-shrink: 0;
-    width: 50px;
-    height: 50px;
-    background: rgba(255,45,120,0.1);
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .cert-info h3 {
-    font-size: 1rem;
-    font-weight: 700;
-    margin-bottom: 0.3rem;
-  }
-
-  .cert-info p {
-    font-size: 1rem;
-    color: var(--muted);
-  }
-
-  .cert-date {
-    font-size: 0.75rem;
-    color: var(--accent2);
-    font-weight: 600;
-    margin-top: 0.3rem;
-    letter-spacing: 0.5px;
-  }
-
-  .certs-list { display: flex; flex-direction: column; gap: 1rem; margin-top: 2.5rem; }
-
-  /* === CONTACT === */
-  .contact-wrapper {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 3rem;
-    margin-top: 2.5rem;
-  }
-
-  .contact-info h3 {
-    font-family: 'Orbitron', monospace;
-    font-size: 1.2rem;
-    margin-bottom: 1rem;
-    color: var(--accent);
-  }
-
-  .contact-info p { color: var(--muted); line-height: 1.8; }
-
-  .social-links { display: flex; gap: 1rem; margin-top: 1.5rem; }
-
-  .social-btn {
-    padding: 0.6rem 1.2rem;
-    border-radius: 5px;
-    font-size: 0.8rem;
-    font-weight: 700;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    text-decoration: none;
-    transition: all 0.3s;
-    border: 1.5px solid;
-  }
-
-  .social-btn.gh { border-color: var(--accent); color: var(--accent); }
-  .social-btn.gh:hover { background: var(--accent); color: #000; }
-  .social-btn.li { border-color: var(--accent3); color: var(--accent3); }
-  .social-btn.li:hover { background: var(--accent3); color: #fff; }
-
-  form { display: flex; flex-direction: column; gap: 1rem; }
-
-  input, textarea {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 6px;
-    padding: 0.8rem 1rem;
-    color: var(--text);
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 0.95rem;
-    outline: none;
-    transition: border-color 0.3s;
-  }
-
-  input:focus, textarea:focus { border-color: var(--accent); }
-  textarea { resize: vertical; min-height: 120px; }
-
-  /* === FOOTER === */
-  footer {
-    text-align: center;
-    padding: 2rem;
-    border-top: 1px solid rgba(255,255,255,0.06);
-    font-size: 0.85rem;
-    color: var(--muted);
-    position: relative;
-    z-index: 1;
-  }
-
-  /* === ANIMATIONS === */
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(30px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  .reveal { opacity: 0; transform: translateY(40px); transition: all 0.7s ease; }
-  .reveal.visible { opacity: 1; transform: translateY(0); }
-
-  /* Scroll indicator */
-  .scroll-indicator {
-    position: absolute;
-    bottom: 2rem;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.4rem;
-    color: var(--muted);
-    font-size: 0.7rem;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    animation: bounce 2s infinite;
-  }
-
-  @keyframes bounce {
-    0%, 100% { transform: translateX(-50%) translateY(0); }
-    50% { transform: translateX(-50%) translateY(-8px); }
-  }
-
-  .scroll-line {
-    width: 1px;
-    height: 40px;
-    background: linear-gradient(180deg, var(--accent), transparent);
-  }
-
-  @media(max-width: 768px) {
-    nav { padding: 1rem 1.5rem; }
-    nav ul { gap: 1.2rem; }
-    section { padding: 4rem 1.5rem; }
-    .contact-wrapper { grid-template-columns: 1fr; }
-    .cards-grid { grid-template-columns: 1fr; }
-  }
+  const btn = e.target.querySelector('button');
+  btn.textContent = 'Opening Mail ✓';
+  btn.style.background = 'linear-gradient(135deg,#00f5ff,#7c3aed)';
+  setTimeout(() => { btn.textContent = 'Send Message →'; btn.style.background = ''; e.target.reset(); }, 3000);
+}
