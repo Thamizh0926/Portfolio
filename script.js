@@ -1,4 +1,22 @@
 // script.js - Connected to index.html via: <script src="script.js"></script>
+
+// ===== TYPING EFFECT =====
+const roles = ['Java Applications', 'REST APIs', 'Data Dashboards', 'Smart Solutions', 'Backend Systems'];
+let roleIndex = 0, charIndex = 0, deleting = false;
+const typedEl = document.getElementById('typed-text');
+function type() {
+  const current = roles[roleIndex];
+  if (!deleting) {
+    typedEl.textContent = current.slice(0, ++charIndex);
+    if (charIndex === current.length) { deleting = true; setTimeout(type, 1500); return; }
+  } else {
+    typedEl.textContent = current.slice(0, --charIndex);
+    if (charIndex === 0) { deleting = false; roleIndex = (roleIndex + 1) % roles.length; }
+  }
+  setTimeout(type, deleting ? 60 : 100);
+}
+type();
+
 // ===== ANIMATED BACKGROUND =====
 const canvas = document.getElementById('bg-canvas');
 const ctx = canvas.getContext('2d');
