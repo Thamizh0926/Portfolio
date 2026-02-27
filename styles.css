@@ -14,7 +14,7 @@
   html { scroll-behavior: smooth; }
 
   body {
-    background: linear-gradient(to right, #0a0f1e 0%, #0d1117 50%, #0a0f1e 100%);
+    background: linear-gradient(to right, #0a0f1e 0%, #0d1117 35%, #050508 65%, #000000 100%);
     background-attachment: fixed;
     color: var(--text);
     font-family: 'Rajdhani', sans-serif;
@@ -42,7 +42,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 1.2rem 4rem;
-    background: linear-gradient(to right, rgba(10,15,30,0.92) 0%, rgba(13,17,23,0.92) 50%, rgba(10,15,30,0.92) 100%);
+    background: linear-gradient(to right, rgba(10,15,30,0.92) 0%, rgba(13,17,23,0.92) 50%, rgba(0,0,0,0.92) 100%);
     backdrop-filter: blur(12px);
     border-bottom: 1px solid rgba(0,245,255,0.15);
   }
@@ -86,6 +86,8 @@
   }
 
   .hero-inner { max-width: 800px; }
+
+
 
   .hero-label {
     font-size: 0.8rem;
@@ -169,7 +171,7 @@
 
   /* === SECTIONS === */
   section {
-    padding: 6rem 4rem;
+    padding: 3rem 4rem 6rem;
     max-width: 1100px;
     margin: 0 auto;
   }
@@ -439,7 +441,19 @@
   .reveal { opacity: 0; transform: translateY(40px); transition: all 0.7s ease; }
   .reveal.visible { opacity: 1; transform: translateY(0); }
 
-  /* Scroll indicator */
+  .hero-typing {
+    font-size: 1rem;
+    color: var(--muted);
+    margin-bottom: 2rem;
+    letter-spacing: 1px;
+    font-family: 'Orbitron', monospace;
+    animation: fadeUp 0.8s 0.35s ease both;
+  }
+  #typed-text { color: var(--accent); font-weight: 700; }
+  .cursor { color: var(--accent2); animation: blink 0.7s infinite; font-weight: 700; }
+  @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+  /* === SCROLL INDICATOR === */
   .scroll-indicator {
     position: absolute;
     bottom: 2rem;
